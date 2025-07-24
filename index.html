@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Pomodoro Timer</title>
+    <title>Pomodoro Timer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
@@ -24,6 +25,7 @@
         .timer-card {
             background: white;
             box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            transition: box-shadow 0.3s ease;
         }
         .progress-circle {
             position: relative;
@@ -38,8 +40,8 @@
             position: absolute;
             border-radius: 50%;
             background: white;
-            width: calc(100% - 24px);
-            height: calc(100% - 24px);
+            width: calc(100% - 30px);
+            height: calc(100% - 30px);
         }
         .timer-display {
             color: var(--primary-color);
@@ -47,50 +49,23 @@
             position: relative;
             z-index: 10;
         }
+        .timer-display.tick {
+            transform: scale(1.03);
+        }
+        .control-button {
+            background-color: var(--primary-color);
+            transition: background-color 0.3s ease, transform 0.1s ease;
+        }
+        .control-button:active {
+            transform: scale(0.95);
+        }
+         /* History Panel */
         #history-panel {
             transform: translateX(100%);
             transition: transform 0.3s ease-in-out;
         }
         #history-panel.show {
             transform: translateX(0);
-        }
-        #voice-cmd-button.listening {
-            animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
-        }
-        input[type="range"] {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 100%;
-            height: 8px;
-            background: #e2e8f0;
-            border-radius: 5px;
-            outline: none;
-            opacity: 0.7;
-            transition: opacity .2s;
-        }
-        input[type="range"]:hover {
-            opacity: 1;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            background: var(--primary-color);
-            border-radius: 50%;
-            cursor: pointer;
-        }
-        input[type="range"]::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            background: var(--primary-color);
-            border-radius: 50%;
-            cursor: pointer;
         }
     </style>
 </head>
@@ -102,36 +77,29 @@
         </svg>
     </button>
     
-    <div id="pomodoro-app" class="timer-card w-full max-w-md rounded-2xl p-4 sm:p-6 flex flex-col">
+    <div id="pomodoro-app" class="timer-card w-full max-w-md rounded-2xl p-6 sm:p-8">
         <div class="text-center">
-            <h2 id="mode-status" class="text-xl font-bold mb-2 tracking-wider uppercase" style="color: var(--primary-color);">Work</h2>
-            <div id="progress-bar" class="progress-circle w-48 h-48 md:w-56 md:h-56 mx-auto mb-4">
-                <div id="timer-display" class="timer-display text-5xl md:text-6xl font-bold">25:00</div>
+            <h2 id="mode-status" class="text-xl font-bold mb-4 tracking-wider uppercase" style="color: var(--primary-color);">Work</h2>
+            <div id="progress-bar" class="progress-circle w-60 h-60 md:w-72 md:h-72 mx-auto mb-6">
+                <div id="timer-display" class="timer-display text-6xl md:text-7xl font-bold">25:00</div>
             </div>
-            
-            <div id="controls" class="flex justify-center items-center gap-4 mb-4">
+            <div id="controls" class="flex justify-center items-center gap-4 mb-8">
                 <button id="toggle-button" class="control-button text-white font-bold py-3 px-6 rounded-lg text-lg">Start</button>
                 <button id="skip-button" class="bg-slate-500 text-white font-bold py-3 px-6 rounded-lg text-lg transition hover:bg-slate-600">Skip</button>
                 <button id="reset-button" class="bg-slate-200 text-slate-600 font-bold py-3 px-6 rounded-lg text-lg transition hover:bg-slate-300">Reset</button>
             </div>
-            
-            <div id="voice-control-area" class="mb-4">
-                <button id="voice-cmd-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-3 rounded-full flex items-center justify-center mx-auto transition-transform duration-200 hover:scale-105">
-                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
-                </button>
-                <p id="voice-feedback" class="text-sm text-slate-500 mt-2 h-4"></p>
-            </div>
-            
-            <div id="settings" class="space-y-3 px-4">
-                <div class="text-left">
-                    <label for="work-slider" class="font-medium text-slate-600 text-sm">Work: <span id="work-time-display" class="font-bold">25</span> min</label>
-                    <input type="range" id="work-slider" min="1" max="90" value="25" class="w-full">
+            <div id="settings">
+                <div class="flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6">
+                    <div class="flex items-center gap-2">
+                        <label for="work-time" class="font-medium text-slate-600">Work:</label>
+                        <input type="number" id="work-time" value="25" min="1" class="w-20 px-3 py-1 rounded-md text-center border-slate-300 border">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label for="break-time" class="font-medium text-slate-600">Break:</label>
+                        <input type="number" id="break-time" value="5" min="1" class="w-20 px-3 py-1 rounded-md text-center border-slate-300 border">
+                    </div>
                 </div>
-                <div class="text-left">
-                     <label for="break-slider" class="font-medium text-slate-600 text-sm">Break: <span id="break-time-display" class="font-bold">5</span> min</label>
-                     <input type="range" id="break-slider" min="1" max="30" value="5" class="w-full">
-                </div>
-                <button id="apply-settings" class="control-button text-white font-bold py-2 px-6 rounded-md mt-2">Apply Settings</button>
+                 <button id="apply-settings" class="control-button text-white font-bold py-2 px-6 rounded-md mt-6">Apply Settings</button>
             </div>
         </div>
     </div>
@@ -145,7 +113,8 @@
                 </svg>
             </button>
         </div>
-        <div id="history-list" class="flex-grow overflow-y-auto space-y-3 pr-2"></div>
+        <div id="history-list" class="flex-grow overflow-y-auto space-y-3 pr-2">
+            </div>
     </div>
 
     <audio id="notification-sound" src="https://cdn.pixabay.com/audio/2022/11/17/audio_822ce09633.mp3" preload="auto"></audio>
@@ -159,130 +128,326 @@
                 this.toggleBtn = document.getElementById('toggle-button');
                 this.resetBtn = document.getElementById('reset-button');
                 this.skipBtn = document.getElementById('skip-button');
+                this.applySettingsBtn = document.getElementById('apply-settings');
+                this.workTimeInput = document.getElementById('work-time');
+                this.breakTimeInput = document.getElementById('break-time');
                 this.progressBar = document.getElementById('progress-bar');
                 this.modeStatus = document.getElementById('mode-status');
                 this.notificationSound = document.getElementById('notification-sound');
                 this.clickSound = document.getElementById('click-sound');
+                
+                // History Elements
                 this.menuBtn = document.getElementById('menu-button');
                 this.historyPanel = document.getElementById('history-panel');
                 this.closeHistoryBtn = document.getElementById('close-history-button');
                 this.historyList = document.getElementById('history-list');
-                this.voiceCmdBtn = document.getElementById('voice-cmd-button');
-                this.voiceFeedback = document.getElementById('voice-feedback');
-                this.workSlider = document.getElementById('work-slider');
-                this.breakSlider = document.getElementById('break-slider');
-                this.workTimeDisplay = document.getElementById('work-time-display');
-                this.breakTimeDisplay = document.getElementById('break-time-display');
-                this.applySettingsBtn = document.getElementById('apply-settings'); // Added button
 
                 // Timer State
-                this.workDuration = parseInt(this.workSlider.value) * 60;
-                this.breakDuration = parseInt(this.breakSlider.value) * 60;
+                this.workDuration = parseInt(this.workTimeInput.value) * 60;
+                this.breakDuration = parseInt(this.breakTimeInput.value) * 60;
                 this.timeRemaining = this.workDuration;
                 this.isWorking = true;
                 this.isPaused = true;
                 this.timer = null;
                 
-                // Other States
+                // History State
                 this.history = JSON.parse(localStorage.getItem('pomodoroHistory')) || [];
+
+                // Geolocation State
                 this.watchId = null;
                 this.startCoords = null;
                 this.lastCoords = null;
                 this.endCoords = null;
-                this.totalDistance = 0;
-                this.workColor = '#4f46e5';
-                this.breakColor = '#10b981';
+                this.totalDistance = 0; // in meters
+
+                // Color Themes
+                this.workColor = '#4f46e5'; // Indigo
+                this.breakColor = '#10b981'; // Emerald
 
                 this.bindEvents();
                 this.updateDisplay();
                 this.updateTheme();
                 this.renderHistory();
-                this.setupVoiceCommands();
             }
 
             bindEvents() {
                 this.toggleBtn.addEventListener('click', () => this.toggleTimer());
                 this.resetBtn.addEventListener('click', () => this.resetTimer());
                 this.skipBtn.addEventListener('click', () => this.skipSession());
+                this.applySettingsBtn.addEventListener('click', () => this.applySettings());
                 this.menuBtn.addEventListener('click', () => this.toggleHistoryPanel());
                 this.closeHistoryBtn.addEventListener('click', () => this.toggleHistoryPanel());
-                this.voiceCmdBtn.addEventListener('click', () => this.startSpeechRecognition());
-                this.applySettingsBtn.addEventListener('click', () => this.applySettings()); // Added listener
-
-                // Sliders only update the display text now
-                this.workSlider.addEventListener('input', () => { this.workTimeDisplay.textContent = this.workSlider.value; });
-                this.breakSlider.addEventListener('input', () => { this.breakTimeDisplay.textContent = this.breakSlider.value; });
             }
             
-            // --- TIMER LOGIC ---
-            toggleHistoryPanel() { this.historyPanel.classList.toggle('show'); }
-            toggleTimer() { this.clickSound.play(); this.isPaused = !this.isPaused; if (!this.isPaused) this.startTimer(); else this.pauseTimer(); }
-            startTimer() { this.toggleBtn.textContent = 'Pause'; clearInterval(this.timer); this.timer = setInterval(() => this.countdown(), 1000); this.startLocationTracking(); }
-            pauseTimer() { this.toggleBtn.textContent = 'Continue'; clearInterval(this.timer); this.timer = null; this.stopLocationTracking(false); }
-            resetTimer(isSwitchingMode = false) { this.clickSound.play(); clearInterval(this.timer); this.timer = null; this.isPaused = true; if (!isSwitchingMode) { this.timeRemaining = this.isWorking ? this.workDuration : this.breakDuration; } this.toggleBtn.textContent = 'Start'; this.updateDisplay(); this.updateProgress(); this.stopLocationTracking(false); this.resetLocationState(); }
-            
-            // Re-added applySettings logic for the button
+            toggleHistoryPanel() {
+                this.historyPanel.classList.toggle('show');
+            }
+
+            toggleTimer() {
+                this.clickSound.play();
+                this.isPaused = !this.isPaused;
+                if (!this.isPaused) this.startTimer();
+                else this.pauseTimer();
+            }
+
+            startTimer() {
+                this.toggleBtn.textContent = 'Pause';
+                clearInterval(this.timer);
+                this.timer = setInterval(() => this.countdown(), 1000);
+                this.startLocationTracking();
+            }
+
+            pauseTimer() {
+                this.toggleBtn.textContent = 'Continue';
+                clearInterval(this.timer);
+                this.timer = null;
+                this.stopLocationTracking(false); // Pause tracking without setting end location
+            }
+
+            resetTimer(isSwitchingMode = false) {
+                this.clickSound.play();
+                clearInterval(this.timer);
+                this.timer = null;
+                this.isPaused = true;
+                if (!isSwitchingMode) {
+                    this.timeRemaining = this.isWorking ? this.workDuration : this.breakDuration;
+                }
+                this.toggleBtn.textContent = 'Start';
+                this.updateDisplay();
+                this.updateProgress();
+                this.stopLocationTracking(false);
+                this.resetLocationState();
+            }
+
             applySettings() {
                 this.clickSound.play();
-                this.workDuration = parseInt(this.workSlider.value) * 60;
-                this.breakDuration = parseInt(this.breakSlider.value) * 60;
+                const workMinutes = parseInt(this.workTimeInput.value);
+                const breakMinutes = parseInt(this.breakTimeInput.value);
+                if (isNaN(workMinutes) || workMinutes < 1 || isNaN(breakMinutes) || breakMinutes < 1) {
+                    alert("Please enter valid numbers for work and break times (minimum 1 minute).");
+                    return;
+                }
+                this.workDuration = workMinutes * 60;
+                this.breakDuration = breakMinutes * 60;
                 this.isWorking = true;
                 this.updateTheme();
                 this.resetTimer();
             }
 
-            async countdown() { if (this.timeRemaining <= 0) { await this.finishSession(); } else { this.timeRemaining--; } this.pulseAnimation(); this.updateDisplay(); this.updateProgress(); }
-            async skipSession() { this.clickSound.play(); await this.finishSession(true); }
-            async finishSession(skipped = false) { clearInterval(this.timer); this.timer = null; await this.stopLocationTracking(true); const sessionType = this.isWorking ? 'Work' : 'Break'; const totalDuration = this.isWorking ? this.workDuration : this.breakDuration; const elapsedSeconds = skipped ? totalDuration - this.timeRemaining : totalDuration; const durationInMinutes = Math.round(elapsedSeconds / 60); if (durationInMinutes > 0) { await this.addHistoryEntry(sessionType, durationInMinutes, this.startCoords, this.endCoords, this.totalDistance); } if (!skipped) this.notificationSound.play(); this.isWorking = !this.isWorking; this.timeRemaining = this.isWorking ? this.workDuration : this.breakDuration; this.updateTheme(); this.resetTimer(true); }
-
-            // --- UI & HISTORY ---
-            async addHistoryEntry(type, duration, startCoords, endCoords, distance) { const [startAddress, endAddress] = await Promise.all([this._getAddressFromCoords(startCoords), this._getAddressFromCoords(endCoords)]); const newEntry = { type, duration, completedAt: new Date().toISOString(), startAddress, endAddress, distance }; this.history.unshift(newEntry); localStorage.setItem('pomodoroHistory', JSON.stringify(this.history)); this.renderHistory(); }
-            renderHistory() { this.historyList.innerHTML = ''; if (this.history.length === 0) { this.historyList.innerHTML = `<p class="text-slate-500 text-center mt-4">No completed sessions yet.</p>`; return; } this.history.forEach(entry => { const item = document.createElement('div'); item.className = 'bg-slate-100 p-3 rounded-lg text-sm'; const dateTime = new Date(entry.completedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }); let locationInfo = `<p class="text-xs text-slate-400 mt-1">Location data not available.</p>`; if (entry.startAddress) { const distanceStr = entry.distance < 1000 ? `${Math.round(entry.distance)}m` : `${(entry.distance / 1000).toFixed(2)}km`; locationInfo = `<p class="text-xs text-slate-500 mt-2 font-semibold">Distance: ${distanceStr}</p><p class="text-xs text-slate-500 mt-1"><span class="font-semibold">From:</span> ${entry.startAddress}</p><p class="text-xs text-slate-500"><span class="font-semibold">To:</span> ${entry.endAddress || entry.startAddress}</p>`; } item.innerHTML = `<div class="flex justify-between items-center"><p class="font-bold text-slate-700">${entry.type} - ${entry.duration} min</p><p class="text-xs text-slate-500">${dateTime}</p></div>${locationInfo}`; this.historyList.appendChild(item); }); }
-            updateDisplay() { const minutes = Math.floor(this.timeRemaining / 60); const seconds = this.timeRemaining % 60; const displayString = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`; this.timerDisplay.textContent = displayString; document.title = `${displayString} - ${this.isWorking ? 'Work' : 'Break'} Timer`; }
-            updateProgress() { const totalDuration = this.isWorking ? this.workDuration : this.breakDuration; if (totalDuration === 0) return; const percentage = ((totalDuration - this.timeRemaining) / totalDuration) * 360; this.progressBar.style.background = `conic-gradient(var(--primary-color) ${percentage}deg, var(--secondary-color) ${percentage}deg)`; }
-            updateTheme() { const newColor = this.isWorking ? this.workColor : this.breakColor; document.documentElement.style.setProperty('--primary-color', newColor); this.modeStatus.textContent = this.isWorking ? 'Work' : 'Break'; }
-            pulseAnimation() { this.timerDisplay.classList.add('tick'); setTimeout(() => this.timerDisplay.classList.remove('tick'), 200); }
-
-            // --- AI VOICE FEATURES ---
-            setupVoiceCommands() { const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SpeechRecognition) { this.voiceCmdBtn.disabled = true; this.showFeedback('Voice recognition not supported.'); return; } this.recognition = new SpeechRecognition(); this.recognition.continuous = false; this.recognition.lang = 'en-IN'; this.recognition.interimResults = false; this.recognition.maxAlternatives = 1; this.recognition.onstart = () => { this.voiceCmdBtn.classList.add('listening'); this.showFeedback('Listening...'); }; this.recognition.onspeechend = () => this.recognition.stop(); this.recognition.onend = () => { this.voiceCmdBtn.classList.remove('listening'); setTimeout(() => this.showFeedback(''), 2000); }; this.recognition.onresult = (event) => { const transcript = event.results[0][0].transcript.toLowerCase(); this.showFeedback(`Heard: "${transcript}"`); this.handleVoiceCommand(transcript); }; this.recognition.onerror = (event) => this.showFeedback(`Error: ${event.error}`); }
-            startSpeechRecognition() { if (window.speechSynthesis.speaking) window.speechSynthesis.cancel(); try { this.recognition.start(); } catch(e) { this.showFeedback("Couldn't start listening."); } }
-            handleVoiceCommand(transcript) {
-                if (transcript.includes('start') || transcript.includes('begin')) { if (this.isPaused) this.toggleTimer(); }
-                else if (transcript.includes('pause') || transcript.includes('stop')) { if (!this.isPaused) this.toggleTimer(); }
-                else if (transcript.includes('skip')) { this.skipSession(); }
-                else if (transcript.includes('reset')) { this.resetTimer(); }
-                else if (transcript.includes('history for') || transcript.includes('what did i do on')) { this.findAndSpeakHistory(transcript); }
-                else if (transcript.includes('set work to') || transcript.includes('change work to')) {
-                    const matches = transcript.match(/\d+/);
-                    if (matches) {
-                        const newWorkTime = parseInt(matches[0]);
-                        this.workSlider.value = newWorkTime;
-                        this.workTimeDisplay.textContent = newWorkTime;
-                        this.applySettings(); // Apply after changing
-                        this.showFeedback(`Work time set to ${newWorkTime} minutes and applied.`);
-                    }
-                } else if (transcript.includes('set break to') || transcript.includes('change break to')) {
-                     const matches = transcript.match(/\d+/);
-                    if (matches) {
-                        const newBreakTime = parseInt(matches[0]);
-                        this.breakSlider.value = newBreakTime;
-                        this.breakTimeDisplay.textContent = newBreakTime;
-                        this.applySettings(); // Apply after changing
-                        this.showFeedback(`Break time set to ${newBreakTime} minutes and applied.`);
-                    }
-                } else { this.showFeedback("Sorry, I didn't recognize that command."); }
+            async countdown() {
+                if (this.timeRemaining <= 0) {
+                    await this.finishSession();
+                } else {
+                    this.timeRemaining--;
+                }
+                this.pulseAnimation();
+                this.updateDisplay();
+                this.updateProgress();
             }
-            showFeedback(message) { this.voiceFeedback.textContent = message; }
-            findAndSpeakHistory(transcript) { let targetDate = new Date(); if (transcript.includes('yesterday')) { targetDate.setDate(targetDate.getDate() - 1); } const targetDateString = targetDate.toISOString().split('T')[0]; const entriesForDay = this.history.filter(entry => entry.completedAt.startsWith(targetDateString)); if (entriesForDay.length === 0) { this.speak(`I found no history for ${targetDate.toLocaleDateString('en-IN', {weekday: 'long', day: 'numeric', month: 'long'})}.`); return; } let totalKm = entriesForDay.reduce((sum, entry) => sum + entry.distance, 0) / 1000; const firstLocation = entriesForDay[entriesForDay.length - 1].startAddress; const lastLocation = entriesForDay[0].endAddress; let response = `On ${targetDate.toLocaleDateString('en-IN', {weekday: 'long'})}, you completed ${entriesForDay.length} sessions. `; if (totalKm > 0.01) { response += `You traveled ${totalKm.toFixed(2)} kilometers. `; if (firstLocation && lastLocation) response += `Your day started near ${firstLocation.split(',')[0]} and ended near ${lastLocation.split(',')[0]}.`; } else { response += "You did not travel during your sessions." } this.speak(response); }
-            speak(text) { if ('speechSynthesis' in window) { const utterance = new SpeechSynthesisUtterance(text); utterance.lang = 'en-IN'; window.speechSynthesis.speak(utterance); } }
             
-            // --- GEOLOCATION ---
-            resetLocationState() { this.startCoords = null; this.lastCoords = null; this.endCoords = null; this.totalDistance = 0; }
-            async _getCurrentPosition() { return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true })); }
-            async startLocationTracking() { if (this.watchId !== null) return; this.resetLocationState(); try { const position = await this._getCurrentPosition(); this.startCoords = { lat: position.coords.latitude, lon: position.coords.longitude }; this.lastCoords = this.startCoords; this.watchId = navigator.geolocation.watchPosition(pos => { const newCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude }; this.totalDistance += this.calculateDistance(this.lastCoords, newCoords); this.lastCoords = newCoords; }, null, { enableHighAccuracy: true }); } catch (error) { console.warn("Location access denied or unavailable:", error.message); } }
-            async stopLocationTracking(getEndLocation) { if (this.watchId !== null) { navigator.geolocation.clearWatch(this.watchId); this.watchId = null; } if (getEndLocation && this.startCoords && !this.endCoords) { try { const position = await this._getCurrentPosition(); this.endCoords = { lat: position.coords.latitude, lon: position.coords.longitude }; if (this.lastCoords) this.totalDistance += this.calculateDistance(this.lastCoords, this.endCoords); } catch (error) { this.endCoords = this.lastCoords; } } }
-            calculateDistance(c1, c2) { if (!c1 || !c2) return 0; const R = 6371e3; const p1 = c1.lat * Math.PI / 180, p2 = c2.lat * Math.PI / 180; const dp = (c2.lat - c1.lat) * Math.PI / 180; const dl = (c2.lon - c1.lon) * Math.PI / 180; const a = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2; return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); }
-            async _getAddressFromCoords(coords) { if (!coords) return null; const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lon}`; try { const response = await fetch(url); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); const data = await response.json(); return data.display_name || "Address not found"; } catch (error) { return "Could not fetch address"; } }
+            async skipSession() {
+                this.clickSound.play();
+                await this.finishSession(true); // true indicates a skip
+            }
+
+            async finishSession(skipped = false) {
+                 // Stop timer and location tracking
+                clearInterval(this.timer);
+                this.timer = null;
+                await this.stopLocationTracking(true); // Finalize end location
+
+                // Log the completed session
+                const sessionType = this.isWorking ? 'Work' : 'Break';
+                const totalDuration = this.isWorking ? this.workDuration : this.breakDuration;
+                const elapsedSeconds = skipped ? totalDuration - this.timeRemaining : totalDuration;
+                const durationInMinutes = Math.round(elapsedSeconds / 60);
+
+                if (durationInMinutes > 0) {
+                    await this.addHistoryEntry(sessionType, durationInMinutes, this.startCoords, this.endCoords, this.totalDistance);
+                }
+                
+                // Switch mode
+                if (!skipped) this.notificationSound.play();
+                this.isWorking = !this.isWorking;
+                this.timeRemaining = this.isWorking ? this.workDuration : this.breakDuration;
+                
+                this.updateTheme();
+                this.resetTimer(true); // Reset state for the new session
+            }
+
+            async addHistoryEntry(type, duration, startCoords, endCoords, distance) {
+                const [startAddress, endAddress] = await Promise.all([
+                    this._getAddressFromCoords(startCoords),
+                    this._getAddressFromCoords(endCoords)
+                ]);
+
+                const newEntry = {
+                    type: type,
+                    duration: duration,
+                    completedAt: new Date().toISOString(),
+                    startAddress: startAddress,
+                    endAddress: endAddress,
+                    distance: distance // in meters
+                };
+                this.history.unshift(newEntry);
+                localStorage.setItem('pomodoroHistory', JSON.stringify(this.history));
+                this.renderHistory();
+            }
+
+            renderHistory() {
+                this.historyList.innerHTML = ''; // Clear existing list
+                if (this.history.length === 0) {
+                    this.historyList.innerHTML = `<p class="text-slate-500 text-center mt-4">No completed sessions yet.</p>`;
+                    return;
+                }
+                this.history.forEach(entry => {
+                    const item = document.createElement('div');
+                    item.className = 'bg-slate-100 p-3 rounded-lg text-sm';
+                    const dateTime = new Date(entry.completedAt).toLocaleString('en-IN', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short'
+                    });
+                    
+                    let locationInfo = `<p class="text-xs text-slate-400 mt-1">Location data not available.</p>`;
+                    if (entry.startAddress) {
+                        const distanceStr = entry.distance < 1000 ? `${Math.round(entry.distance)}m` : `${(entry.distance / 1000).toFixed(2)}km`;
+                        locationInfo = `
+                            <p class="text-xs text-slate-500 mt-2 font-semibold">
+                                Distance Covered: ${distanceStr}
+                            </p>
+                            <p class="text-xs text-slate-500 mt-1">
+                                <span class="font-semibold">From:</span> ${entry.startAddress}
+                            </p>
+                             <p class="text-xs text-slate-500">
+                                <span class="font-semibold">To:</span> ${entry.endAddress || entry.startAddress}
+                            </p>
+                        `;
+                    }
+
+                    item.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <p class="font-bold text-slate-700">${entry.type} - ${entry.duration} min</p>
+                            <p class="text-xs text-slate-500">${dateTime}</p>
+                        </div>
+                        ${locationInfo}
+                    `;
+                    this.historyList.appendChild(item);
+                });
+            }
+
+            updateDisplay() {
+                const minutes = Math.floor(this.timeRemaining / 60);
+                const seconds = this.timeRemaining % 60;
+                const displayString = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                this.timerDisplay.textContent = displayString;
+                document.title = `${displayString} - ${this.isWorking ? 'Work' : 'Break'} Timer`;
+            }
+
+            updateProgress() {
+                const totalDuration = this.isWorking ? this.workDuration : this.breakDuration;
+                if (totalDuration === 0) return;
+                const percentage = ((totalDuration - this.timeRemaining) / totalDuration) * 360;
+                this.progressBar.style.background = `conic-gradient(var(--primary-color) ${percentage}deg, var(--secondary-color) ${percentage}deg)`;
+            }
+
+            updateTheme() {
+                const newColor = this.isWorking ? this.workColor : this.breakColor;
+                document.documentElement.style.setProperty('--primary-color', newColor);
+                this.modeStatus.textContent = this.isWorking ? 'Work' : 'Break';
+            }
+
+            pulseAnimation() {
+                this.timerDisplay.classList.add('tick');
+                setTimeout(() => this.timerDisplay.classList.remove('tick'), 200);
+            }
+
+            // --- Geolocation & Address Methods ---
+
+            resetLocationState() {
+                this.startCoords = null;
+                this.lastCoords = null;
+                this.endCoords = null;
+                this.totalDistance = 0;
+            }
+
+            async _getCurrentPosition() {
+                return new Promise((resolve, reject) => {
+                    if (!('geolocation' in navigator)) {
+                        return reject(new Error('Geolocation is not supported.'));
+                    }
+                    navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true });
+                });
+            }
+            
+            async startLocationTracking() {
+                if (this.watchId !== null) return; // Already tracking
+                this.resetLocationState();
+
+                try {
+                    const position = await this._getCurrentPosition();
+                    this.startCoords = { lat: position.coords.latitude, lon: position.coords.longitude };
+                    this.lastCoords = this.startCoords;
+
+                    this.watchId = navigator.geolocation.watchPosition(pos => {
+                        const newCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+                        this.totalDistance += this.calculateDistance(this.lastCoords, newCoords);
+                        this.lastCoords = newCoords;
+                    }, null, { enableHighAccuracy: true });
+
+                } catch (error) {
+                    console.warn("Location access denied or unavailable:", error.message);
+                }
+            }
+
+            async stopLocationTracking(getEndLocation) {
+                if (this.watchId !== null) {
+                    navigator.geolocation.clearWatch(this.watchId);
+                    this.watchId = null;
+                }
+                 if (getEndLocation && this.startCoords && !this.endCoords) {
+                    try {
+                        const position = await this._getCurrentPosition();
+                        this.endCoords = { lat: position.coords.latitude, lon: position.coords.longitude };
+                        if (this.lastCoords) {
+                           this.totalDistance += this.calculateDistance(this.lastCoords, this.endCoords);
+                        }
+                    } catch (error) {
+                         console.warn("Could not get final location:", error.message);
+                         this.endCoords = this.lastCoords; // Use last known coords if final fails
+                    }
+                }
+            }
+
+            calculateDistance(coords1, coords2) {
+                if (!coords1 || !coords2) return 0;
+
+                const R = 6371e3; // Earth's radius in metres
+                const φ1 = coords1.lat * Math.PI / 180;
+                const φ2 = coords2.lat * Math.PI / 180;
+                const Δφ = (coords2.lat - coords1.lat) * Math.PI / 180;
+                const Δλ = (coords2.lon - coords1.lon) * Math.PI / 180;
+
+                const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                          Math.cos(φ1) * Math.cos(φ2) *
+                          Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+                return R * c; // in metres
+            }
+
+            async _getAddressFromCoords(coords) {
+                if (!coords) return null;
+                const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lon}`;
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const data = await response.json();
+                    return data.display_name || "Address not found";
+                } catch (error) {
+                    console.error("Error fetching address:", error);
+                    return "Could not fetch address";
+                }
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -291,3 +456,4 @@
     </script>
 </body>
 </html>
+```
