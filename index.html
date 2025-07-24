@@ -38,7 +38,6 @@
             position: absolute;
             border-radius: 50%;
             background: white;
-            /* UPDATED: Ring thickness adjusted */
             width: calc(100% - 24px);
             height: calc(100% - 24px);
         }
@@ -63,7 +62,6 @@
             70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
             100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
         }
-        /* UPDATED: Custom styles for better looking sliders */
         input[type="range"] {
             -webkit-appearance: none;
             appearance: none;
@@ -110,6 +108,7 @@
             <div id="progress-bar" class="progress-circle w-48 h-48 md:w-56 md:h-56 mx-auto mb-4">
                 <div id="timer-display" class="timer-display text-5xl md:text-6xl font-bold">25:00</div>
             </div>
+            
             <div id="controls" class="flex justify-center items-center gap-4 mb-4">
                 <button id="toggle-button" class="control-button text-white font-bold py-3 px-6 rounded-lg text-lg">Start</button>
                 <button id="skip-button" class="bg-slate-500 text-white font-bold py-3 px-6 rounded-lg text-lg transition hover:bg-slate-600">Skip</button>
@@ -132,6 +131,7 @@
                      <label for="break-slider" class="font-medium text-slate-600 text-sm">Break: <span id="break-time-display" class="font-bold">5</span> min</label>
                      <input type="range" id="break-slider" min="1" max="30" value="5" class="w-full">
                 </div>
+                <button id="apply-settings" class="control-button text-white font-bold py-2 px-6 rounded-md mt-2">Apply Settings</button>
             </div>
         </div>
     </div>
@@ -163,22 +163,17 @@
                 this.modeStatus = document.getElementById('mode-status');
                 this.notificationSound = document.getElementById('notification-sound');
                 this.clickSound = document.getElementById('click-sound');
-                
-                // History Elements
                 this.menuBtn = document.getElementById('menu-button');
                 this.historyPanel = document.getElementById('history-panel');
                 this.closeHistoryBtn = document.getElementById('close-history-button');
                 this.historyList = document.getElementById('history-list');
-
-                // Voice Command Elements
                 this.voiceCmdBtn = document.getElementById('voice-cmd-button');
                 this.voiceFeedback = document.getElementById('voice-feedback');
-
-                // UPDATED: Slider Elements
                 this.workSlider = document.getElementById('work-slider');
                 this.breakSlider = document.getElementById('break-slider');
                 this.workTimeDisplay = document.getElementById('work-time-display');
                 this.breakTimeDisplay = document.getElementById('break-time-display');
+                this.applySettingsBtn = document.getElementById('apply-settings'); // Added button
 
                 // Timer State
                 this.workDuration = parseInt(this.workSlider.value) * 60;
@@ -212,49 +207,35 @@
                 this.menuBtn.addEventListener('click', () => this.toggleHistoryPanel());
                 this.closeHistoryBtn.addEventListener('click', () => this.toggleHistoryPanel());
                 this.voiceCmdBtn.addEventListener('click', () => this.startSpeechRecognition());
+                this.applySettingsBtn.addEventListener('click', () => this.applySettings()); // Added listener
 
-                // UPDATED: Event listeners for sliders
-                this.workSlider.addEventListener('input', () => this.handleSliderChange(true));
-                this.breakSlider.addEventListener('input', () => this.handleSliderChange(false));
+                // Sliders only update the display text now
+                this.workSlider.addEventListener('input', () => { this.workTimeDisplay.textContent = this.workSlider.value; });
+                this.breakSlider.addEventListener('input', () => { this.breakTimeDisplay.textContent = this.breakSlider.value; });
             }
             
-            // All other methods from the previous version remain the same,
-            // with updates to applySettings and handleVoiceCommand
-            
-            // --- TIMER LOGIC (Unchanged, except for applySettings) ---
+            // --- TIMER LOGIC ---
             toggleHistoryPanel() { this.historyPanel.classList.toggle('show'); }
             toggleTimer() { this.clickSound.play(); this.isPaused = !this.isPaused; if (!this.isPaused) this.startTimer(); else this.pauseTimer(); }
             startTimer() { this.toggleBtn.textContent = 'Pause'; clearInterval(this.timer); this.timer = setInterval(() => this.countdown(), 1000); this.startLocationTracking(); }
             pauseTimer() { this.toggleBtn.textContent = 'Continue'; clearInterval(this.timer); this.timer = null; this.stopLocationTracking(false); }
             resetTimer(isSwitchingMode = false) { this.clickSound.play(); clearInterval(this.timer); this.timer = null; this.isPaused = true; if (!isSwitchingMode) { this.timeRemaining = this.isWorking ? this.workDuration : this.breakDuration; } this.toggleBtn.textContent = 'Start'; this.updateDisplay(); this.updateProgress(); this.stopLocationTracking(false); this.resetLocationState(); }
             
-            // UPDATED: handleSliderChange now calls applySettings
-            handleSliderChange(isWorkSlider) {
-                if (isWorkSlider) {
-                    this.workTimeDisplay.textContent = this.workSlider.value;
-                } else {
-                    this.breakTimeDisplay.textContent = this.breakSlider.value;
-                }
-                this.applySettings();
-            }
-
+            // Re-added applySettings logic for the button
             applySettings() {
-                // No sound on slider change to avoid being annoying
+                this.clickSound.play();
                 this.workDuration = parseInt(this.workSlider.value) * 60;
                 this.breakDuration = parseInt(this.breakSlider.value) * 60;
-                
-                // Only reset if the timer is paused, otherwise let the current session finish with the old time
-                if (this.isPaused) {
-                    this.isWorking = true;
-                    this.updateTheme();
-                    this.resetTimer();
-                }
+                this.isWorking = true;
+                this.updateTheme();
+                this.resetTimer();
             }
+
             async countdown() { if (this.timeRemaining <= 0) { await this.finishSession(); } else { this.timeRemaining--; } this.pulseAnimation(); this.updateDisplay(); this.updateProgress(); }
             async skipSession() { this.clickSound.play(); await this.finishSession(true); }
             async finishSession(skipped = false) { clearInterval(this.timer); this.timer = null; await this.stopLocationTracking(true); const sessionType = this.isWorking ? 'Work' : 'Break'; const totalDuration = this.isWorking ? this.workDuration : this.breakDuration; const elapsedSeconds = skipped ? totalDuration - this.timeRemaining : totalDuration; const durationInMinutes = Math.round(elapsedSeconds / 60); if (durationInMinutes > 0) { await this.addHistoryEntry(sessionType, durationInMinutes, this.startCoords, this.endCoords, this.totalDistance); } if (!skipped) this.notificationSound.play(); this.isWorking = !this.isWorking; this.timeRemaining = this.isWorking ? this.workDuration : this.breakDuration; this.updateTheme(); this.resetTimer(true); }
 
-            // --- UI & HISTORY (Unchanged) ---
+            // --- UI & HISTORY ---
             async addHistoryEntry(type, duration, startCoords, endCoords, distance) { const [startAddress, endAddress] = await Promise.all([this._getAddressFromCoords(startCoords), this._getAddressFromCoords(endCoords)]); const newEntry = { type, duration, completedAt: new Date().toISOString(), startAddress, endAddress, distance }; this.history.unshift(newEntry); localStorage.setItem('pomodoroHistory', JSON.stringify(this.history)); this.renderHistory(); }
             renderHistory() { this.historyList.innerHTML = ''; if (this.history.length === 0) { this.historyList.innerHTML = `<p class="text-slate-500 text-center mt-4">No completed sessions yet.</p>`; return; } this.history.forEach(entry => { const item = document.createElement('div'); item.className = 'bg-slate-100 p-3 rounded-lg text-sm'; const dateTime = new Date(entry.completedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }); let locationInfo = `<p class="text-xs text-slate-400 mt-1">Location data not available.</p>`; if (entry.startAddress) { const distanceStr = entry.distance < 1000 ? `${Math.round(entry.distance)}m` : `${(entry.distance / 1000).toFixed(2)}km`; locationInfo = `<p class="text-xs text-slate-500 mt-2 font-semibold">Distance: ${distanceStr}</p><p class="text-xs text-slate-500 mt-1"><span class="font-semibold">From:</span> ${entry.startAddress}</p><p class="text-xs text-slate-500"><span class="font-semibold">To:</span> ${entry.endAddress || entry.startAddress}</p>`; } item.innerHTML = `<div class="flex justify-between items-center"><p class="font-bold text-slate-700">${entry.type} - ${entry.duration} min</p><p class="text-xs text-slate-500">${dateTime}</p></div>${locationInfo}`; this.historyList.appendChild(item); }); }
             updateDisplay() { const minutes = Math.floor(this.timeRemaining / 60); const seconds = this.timeRemaining % 60; const displayString = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`; this.timerDisplay.textContent = displayString; document.title = `${displayString} - ${this.isWorking ? 'Work' : 'Break'} Timer`; }
@@ -262,7 +243,7 @@
             updateTheme() { const newColor = this.isWorking ? this.workColor : this.breakColor; document.documentElement.style.setProperty('--primary-color', newColor); this.modeStatus.textContent = this.isWorking ? 'Work' : 'Break'; }
             pulseAnimation() { this.timerDisplay.classList.add('tick'); setTimeout(() => this.timerDisplay.classList.remove('tick'), 200); }
 
-            // --- AI VOICE FEATURES (Updated handleVoiceCommand) ---
+            // --- AI VOICE FEATURES ---
             setupVoiceCommands() { const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SpeechRecognition) { this.voiceCmdBtn.disabled = true; this.showFeedback('Voice recognition not supported.'); return; } this.recognition = new SpeechRecognition(); this.recognition.continuous = false; this.recognition.lang = 'en-IN'; this.recognition.interimResults = false; this.recognition.maxAlternatives = 1; this.recognition.onstart = () => { this.voiceCmdBtn.classList.add('listening'); this.showFeedback('Listening...'); }; this.recognition.onspeechend = () => this.recognition.stop(); this.recognition.onend = () => { this.voiceCmdBtn.classList.remove('listening'); setTimeout(() => this.showFeedback(''), 2000); }; this.recognition.onresult = (event) => { const transcript = event.results[0][0].transcript.toLowerCase(); this.showFeedback(`Heard: "${transcript}"`); this.handleVoiceCommand(transcript); }; this.recognition.onerror = (event) => this.showFeedback(`Error: ${event.error}`); }
             startSpeechRecognition() { if (window.speechSynthesis.speaking) window.speechSynthesis.cancel(); try { this.recognition.start(); } catch(e) { this.showFeedback("Couldn't start listening."); } }
             handleVoiceCommand(transcript) {
@@ -275,19 +256,19 @@
                     const matches = transcript.match(/\d+/);
                     if (matches) {
                         const newWorkTime = parseInt(matches[0]);
-                        // UPDATED: Set slider value and call handler
                         this.workSlider.value = newWorkTime;
-                        this.handleSliderChange(true);
-                        this.showFeedback(`Work time set to ${newWorkTime} minutes.`);
+                        this.workTimeDisplay.textContent = newWorkTime;
+                        this.applySettings(); // Apply after changing
+                        this.showFeedback(`Work time set to ${newWorkTime} minutes and applied.`);
                     }
                 } else if (transcript.includes('set break to') || transcript.includes('change break to')) {
                      const matches = transcript.match(/\d+/);
                     if (matches) {
                         const newBreakTime = parseInt(matches[0]);
-                        // UPDATED: Set slider value and call handler
                         this.breakSlider.value = newBreakTime;
-                        this.handleSliderChange(false);
-                        this.showFeedback(`Break time set to ${newBreakTime} minutes.`);
+                        this.breakTimeDisplay.textContent = newBreakTime;
+                        this.applySettings(); // Apply after changing
+                        this.showFeedback(`Break time set to ${newBreakTime} minutes and applied.`);
                     }
                 } else { this.showFeedback("Sorry, I didn't recognize that command."); }
             }
@@ -295,7 +276,7 @@
             findAndSpeakHistory(transcript) { let targetDate = new Date(); if (transcript.includes('yesterday')) { targetDate.setDate(targetDate.getDate() - 1); } const targetDateString = targetDate.toISOString().split('T')[0]; const entriesForDay = this.history.filter(entry => entry.completedAt.startsWith(targetDateString)); if (entriesForDay.length === 0) { this.speak(`I found no history for ${targetDate.toLocaleDateString('en-IN', {weekday: 'long', day: 'numeric', month: 'long'})}.`); return; } let totalKm = entriesForDay.reduce((sum, entry) => sum + entry.distance, 0) / 1000; const firstLocation = entriesForDay[entriesForDay.length - 1].startAddress; const lastLocation = entriesForDay[0].endAddress; let response = `On ${targetDate.toLocaleDateString('en-IN', {weekday: 'long'})}, you completed ${entriesForDay.length} sessions. `; if (totalKm > 0.01) { response += `You traveled ${totalKm.toFixed(2)} kilometers. `; if (firstLocation && lastLocation) response += `Your day started near ${firstLocation.split(',')[0]} and ended near ${lastLocation.split(',')[0]}.`; } else { response += "You did not travel during your sessions." } this.speak(response); }
             speak(text) { if ('speechSynthesis' in window) { const utterance = new SpeechSynthesisUtterance(text); utterance.lang = 'en-IN'; window.speechSynthesis.speak(utterance); } }
             
-            // --- GEOLOCATION (Unchanged) ---
+            // --- GEOLOCATION ---
             resetLocationState() { this.startCoords = null; this.lastCoords = null; this.endCoords = null; this.totalDistance = 0; }
             async _getCurrentPosition() { return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true })); }
             async startLocationTracking() { if (this.watchId !== null) return; this.resetLocationState(); try { const position = await this._getCurrentPosition(); this.startCoords = { lat: position.coords.latitude, lon: position.coords.longitude }; this.lastCoords = this.startCoords; this.watchId = navigator.geolocation.watchPosition(pos => { const newCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude }; this.totalDistance += this.calculateDistance(this.lastCoords, newCoords); this.lastCoords = newCoords; }, null, { enableHighAccuracy: true }); } catch (error) { console.warn("Location access denied or unavailable:", error.message); } }
